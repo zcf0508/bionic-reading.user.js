@@ -1,6 +1,3 @@
-# 网页英文前部加粗 用户脚本
-把英文每个词前半部加粗，阅读速度可能可以大幅度提高！
-
 ## Bionic Reading 介绍
 https://bionic-reading.com/
 
