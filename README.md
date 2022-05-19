@@ -9,11 +9,5 @@ https://bionic-reading.com/
 
 安装过程可参考 https://greasyfork.org/ 首页的，第一步：安装一个用户脚本管理器 章节
 
-## Greasy Fork
-https://greasyfork.org/scripts/445211
-
 ## GitHub
-https://github.com/itorr/bionic-reading.user.js
-
-## 微博
-https://weibo.com/1197780522/LtIj8bGbo
+https://github.com/zcf0508/bionic-reading.user.js
