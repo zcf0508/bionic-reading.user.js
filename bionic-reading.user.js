@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         中文 bionic-reading
 // @namespace    https://github.com/zcf0508/bionic-reading.user.js
-// @version      0.3
+// @version      0.3.2
 // @description  网页中文bionic-reading效果
 // @author       huali
 // @require      https://cdn.jsdelivr.net/npm/segmentit@2.0.3/dist/umd/segmentit.js
@@ -33,14 +33,14 @@ if (/weibo/.test(location.hostname)) {
 }
 
 const styleEl = document.createElement('style');
-styleEl.innerHTML = 'bbb{font-weight:bolder;}';
+styleEl.innerHTML = 'bbb{font-weight:bold;}';
 
 const excludeTagNames = [
     'script', 'style', 'xmp',
-    'input', 'textarea',
+    'input', 'textarea', 'select',
     'pre', 'code',
     'h1', 'h2', 'h3', 'h4',
-    'b', 'strong'
+    'b', 'strong', 'i'
 ].map(a => a.toUpperCase());
 
 const gather = el => {
@@ -117,14 +117,16 @@ const lazy = (func, ms = 0) => {
 };
 lazy(bionic)();
 
+const { open, send } = XMLHttpRequest.prototype;
+XMLHttpRequest.prototype.open = function () {
+    this.addEventListener('load', lazy(bionic));
+    return open.apply(this, arguments);
+};
+
 if (window.ResizeObserver) {
     (new ResizeObserver(lazy(bionic, 100))).observe(body);
 } else {
-    const { open, send } = XMLHttpRequest.prototype;
-    XMLHttpRequest.prototype.open = function () {
-        this.addEventListener('load', lazy(bionic));
-        return open.apply(this, arguments);
-    };
+    
     document.addEventListener('click', lazy(bionic));
 
     window.addEventListener('load', lazy(bionic));
