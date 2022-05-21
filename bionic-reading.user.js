@@ -14,14 +14,14 @@
 const segmentit = Segmentit.useDefault(new Segmentit.Segment());
 
 // 中文
-const chinese_reg = /[\u4e00-\u9fa5]/i;
+const chinese_reg = /[\u4e00-\u9fa5]+/;
 
 // 分句
 const sentence_reg = /[^：。！？…]+[：。！？…]/g;
 
 const enCodeHTML = s => s.replace(/[\u00A0-\u9999<>\&]/g, w => '&#' + w.charCodeAt(0) + ';');
 
-let body =  document.body;
+let body = document.body;
 
 if (/weibo/.test(location.hostname)) {
     const wbMainEl = document.querySelector('.WB_main');
@@ -58,36 +58,49 @@ const gather = el => {
     return textEls;
 };
 
-const engRegexi = /[a-z][a-z0-9]+/i;
-const engRegexig = /[a-z][a-z0-9]+/ig;
-
-let replaceTextByEl = el => {
+const replaceTextByEl = el => {
+    const raw_text = el.data;
     const text = el.data;
-    const sentences = text.match(sentence_reg) || [text]; // 分句
 
-    const spanEl = document.createElement('spann');
-    spanEl.isEnB = true;
-    if (sentences && sentences.length > 0) {
-        spanEl.innerHTML = sentences.map(sentence => {
-            const is_long = sentence.length > 20; // 长句
-            return segmentit.doSegment(sentence).map((word, index) => {
-                if (
-                    Segmentit.cnPOSTag(word.p) !== '标点符号' && // 不是标点符号
-                    chinese_reg.test(word.w) && // 中文
-                    index % (is_long ? 3 : 2) === 0 // 避免加粗过多
-                ) {
-                    return '<bbb>' + enCodeHTML(word.w) + '</bbb>';
-                } else {
-                    return enCodeHTML(word.w);
+    if (text && text.trim().length > 0) {
+        const sentences = raw_text.match(sentence_reg) || (text.trim().length > 0 ? [raw_text] : null); // 分句
+        const spanEl = document.createElement('spann');
+        spanEl.isEnB = true;
+        if (sentences && sentences.length > 0) {
+            spanEl.innerHTML = sentences.map(sentence => {
+                let result = sentence;
+
+                if (sentence.length > 0 && chinese_reg.test(sentence)) {
+                    const is_long = sentence.length > 20; // 长句
+                    let search_index = sentence.length;
+
+                    const segmentit_result = segmentit.doSegment(sentence);
+                    segmentit_result.reverse().forEach((word, index) => {
+                        // 倒序查找关键字并替换
+                        search_index = result.substr(0, search_index).lastIndexOf(word.w);
+                        if (
+                            Segmentit.cnPOSTag(word.p) !== '标点符号' && // 不是标点符号
+                            chinese_reg.test(word.w) && // 中文
+                            (segmentit_result.length - 1 - index) % (is_long ? 3 : 2) === 0 // 避免加粗过多
+                        ) {
+                            result = `${result.substr(0, search_index)}<bbb>${enCodeHTML(word.w)}</bbb>${result.substr(search_index + word.w.length, result.length - 1)}`;
+
+                        } else {
+                            result = result.substr(0, search_index) + enCodeHTML(word.w) + result.substr(search_index + word.w.length, result.length - 1);
+
+                        }
+                    })
+
                 }
+                return result;
             }).join('')
-        }).join('')
-    } else {
-        spanEl.innerHTML = text;
-    }
+        } else {
+            spanEl.innerHTML = enCodeHTML(raw_text);
+        }
 
-    el.after(spanEl);
-    el.remove();
+        el.after(spanEl);
+        el.remove();
+    }
 };
 
 const bionic = _ => {
@@ -99,8 +112,8 @@ const bionic = _ => {
 
 const lazy = (func, ms = 0) => {
     return _ => {
-        clearTimeout(func.T)
-        func.T = setTimeout(func, ms)
+        clearTimeout(func.T);
+        func.T = setTimeout(func, ms);
     }
 };
 lazy(bionic)();
