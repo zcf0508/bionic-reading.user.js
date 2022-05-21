@@ -17,11 +17,11 @@ const segmentit = Segmentit.useDefault(new Segmentit.Segment());
 const chinese_reg = /[\u4e00-\u9fa5]/i;
 
 // 分句
-const sentence_reg = /[^：。！？]+[：。！？]/g;
+const sentence_reg = /[^：。！？…]+[：。！？…]/g;
 
 const enCodeHTML = s => s.replace(/[\u00A0-\u9999<>\&]/g, w => '&#' + w.charCodeAt(0) + ';');
 
-let body = document.body;
+let body =  document.body;
 
 if (/weibo/.test(location.hostname)) {
     const wbMainEl = document.querySelector('.WB_main');
@@ -63,7 +63,7 @@ const engRegexig = /[a-z][a-z0-9]+/ig;
 
 let replaceTextByEl = el => {
     const text = el.data;
-    const sentences = text.match(sentence_reg); // 分句
+    const sentences = text.match(sentence_reg) || [text]; // 分句
 
     const spanEl = document.createElement('spann');
     spanEl.isEnB = true;
