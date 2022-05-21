@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         中文 bionic-reading
 // @namespace    https://github.com/zcf0508/bionic-reading.user.js
-// @version      0.2
+// @version      0.3
 // @description  网页中文bionic-reading效果
 // @author       huali
 // @require      https://cdn.jsdelivr.net/npm/segmentit@2.0.3/dist/umd/segmentit.js
@@ -9,7 +9,7 @@
 // @grant        none
 // @license      MIT
 // @run-at       document-idle
-// @supportURL   https://github.com/itorr/bionic-reading.user.js/issues
+// @supportURL   https://github.com/zcf0508/bionic-reading.user.js/issues
 // ==/UserScript==
 const segmentit = Segmentit.useDefault(new Segmentit.Segment());
 
@@ -77,17 +77,16 @@ const replaceTextByEl = el => {
                     const segmentit_result = segmentit.doSegment(sentence);
                     segmentit_result.reverse().forEach((word, index) => {
                         // 倒序查找关键字并替换
-                        search_index = result.substr(0, search_index).lastIndexOf(word.w);
-                        if (
-                            Segmentit.cnPOSTag(word.p) !== '标点符号' && // 不是标点符号
-                            chinese_reg.test(word.w) && // 中文
-                            (segmentit_result.length - 1 - index) % (is_long ? 3 : 2) === 0 // 避免加粗过多
-                        ) {
-                            result = `${result.substr(0, search_index)}<bbb>${enCodeHTML(word.w)}</bbb>${result.substr(search_index + word.w.length, result.length - 1)}`;
+                        const match_index = result.substr(0, search_index).lastIndexOf(word.w);
+                        if (match_index >= 0) {
+                            search_index = match_index;
+                            if (
+                                Segmentit.cnPOSTag(word.p) !== '标点符号' && // 不是标点符号
+                                (segmentit_result.length - 1 - index) % (is_long ? 3 : 2) === 0 // 避免加粗过多
+                            ) {
+                                result = `${result.substr(0, search_index)}<bbb>${enCodeHTML(word.w)}</bbb>${result.substr(search_index + word.w.length, result.length - 1)}`;
 
-                        } else {
-                            result = result.substr(0, search_index) + enCodeHTML(word.w) + result.substr(search_index + word.w.length, result.length - 1);
-
+                            }
                         }
                     })
 
