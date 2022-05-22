@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         中文 bionic-reading
 // @namespace    https://github.com/zcf0508/bionic-reading.user.js
-// @version      0.4
+// @version      0.4.1
 // @description  网页中文bionic-reading效果 Ctrl + B / ⌘ + B 开启关闭
 // @author       huali
 // @require      https://cdn.jsdelivr.net/npm/segmentit@2.0.3/dist/umd/segmentit.js
@@ -17,7 +17,7 @@ const segmentit = Segmentit.useDefault(new Segmentit.Segment());
 const chinese_reg = /[\u4e00-\u9fa5]+/;
 
 // 分句
-const sentence_reg = /[。！？]+[。！？]/g;
+const sentence_reg = /[^。！？…]+[。！？…]*/g;
 
 let isBionic = false;
 
@@ -55,7 +55,7 @@ const gather = el => {
             textEls.push(el);
         } else if (el.childNodes) {
             if (excludeTagNames.includes(el.tagName)) return;
-            textEls = textEls.concat(gather(el))
+            textEls = textEls.concat(gather(el));
         }
     })
     return textEls;
@@ -119,8 +119,8 @@ const bionic = _ => {
 
 const lazy = (func, ms = 15) => {
     return _ => {
-        clearTimeout(func.T)
-        func.T = setTimeout(func, ms)
+        clearTimeout(func.T);
+        func.T = setTimeout(func, ms);
     }
 };
 
