@@ -1,3 +1,6 @@
+## 快捷键
+<kbd>⌘</kbd>  + <kbd>B</kbd> or <kbd>Ctrl</kbd> + <kbd>B</kbd> 复原、重做
+
 ## Bionic Reading 介绍
 https://bionic-reading.com/
 

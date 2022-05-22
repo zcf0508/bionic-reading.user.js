@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         中文 bionic-reading
 // @namespace    https://github.com/zcf0508/bionic-reading.user.js
-// @version      0.3.2
-// @description  网页中文bionic-reading效果
+// @version      0.4
+// @description  网页中文bionic-reading效果 Ctrl + B / ⌘ + B 开启关闭
 // @author       huali
 // @require      https://cdn.jsdelivr.net/npm/segmentit@2.0.3/dist/umd/segmentit.js
 // @match        *://*/*
@@ -18,6 +18,8 @@ const chinese_reg = /[\u4e00-\u9fa5]+/;
 
 // 分句
 const sentence_reg = /[。！？…]+[。！？…]/g;
+
+let isBionic = false;
 
 const enCodeHTML = s => s.replace(/[\u00A0-\u9999<>\&]/g, w => '&#' + w.charCodeAt(0) + ';');
 
@@ -47,6 +49,7 @@ const gather = el => {
     let textEls = [];
     el.childNodes.forEach(el => {
         if (el.isEnB) return;
+        if (el.originEl) return;
 
         if (el.nodeType === 3) {
             textEls.push(el);
@@ -64,40 +67,43 @@ const replaceTextByEl = el => {
 
     if (text && text.trim().length > 0) {
         const sentences = raw_text.match(sentence_reg) || (text.trim().length > 0 ? [raw_text] : null); // 分句
-        const spanEl = document.createElement('spann');
-        spanEl.isEnB = true;
-        if (sentences && sentences.length > 0) {
-            spanEl.innerHTML = sentences.map(sentence => {
-                let result = sentence;
+        if (!el.replaceEL) {
+            const spanEl = document.createElement('bionic');
+            spanEl.isEnB = true;
+            if (sentences && sentences.length > 0) {
+                spanEl.innerHTML = sentences.map(sentence => {
+                    let result = sentence;
 
-                if (sentence.length > 0 && chinese_reg.test(sentence)) {
-                    const is_long = sentence.length > 20; // 长句
-                    let search_index = sentence.length;
+                    if (sentence.length > 0 && chinese_reg.test(sentence)) {
+                        const is_long = sentence.length > 20; // 长句
+                        let search_index = sentence.length;
 
-                    const segmentit_result = segmentit.doSegment(sentence);
-                    segmentit_result.reverse().forEach((word, index) => {
-                        // 倒序查找关键字并替换
-                        const match_index = result.substr(0, search_index).lastIndexOf(word.w);
-                        if (match_index >= 0) {
-                            search_index = match_index;
-                            if (
-                                Segmentit.cnPOSTag(word.p) !== '标点符号' && // 不是标点符号
-                                (segmentit_result.length - 1 - index) % (is_long ? 3 : 2) === 0 // 避免加粗过多
-                            ) {
-                                result = `${result.substr(0, search_index)}<bbb>${enCodeHTML(word.w)}</bbb>${result.substr(search_index + word.w.length, result.length - 1)}`;
+                        const segmentit_result = segmentit.doSegment(sentence);
+                        segmentit_result.reverse().forEach((word, index) => {
+                            // 倒序查找关键字并替换
+                            const match_index = result.substr(0, search_index).lastIndexOf(word.w);
+                            if (match_index >= 0) {
+                                search_index = match_index;
+                                if (
+                                    Segmentit.cnPOSTag(word.p) !== '标点符号' && // 不是标点符号
+                                    (segmentit_result.length - 1 - index) % (is_long ? 3 : 2) === 0 // 避免加粗过多
+                                ) {
+                                    result = `${result.substr(0, search_index)}<bbb>${enCodeHTML(word.w)}</bbb>${result.substr(search_index + word.w.length, result.length - 1)}`;
 
+                                }
                             }
-                        }
-                    })
+                        })
 
-                }
-                return result;
-            }).join('')
-        } else {
-            spanEl.innerHTML = enCodeHTML(raw_text);
+                    }
+                    return result;
+                }).join('')
+            } else {
+                spanEl.innerHTML = enCodeHTML(raw_text);
+            }
+            spanEl.originEl = el;
+            el.replaceEL = spanEl;
         }
-
-        el.after(spanEl);
+        el.after(el.replaceEL);
         el.remove();
     }
 };
@@ -105,30 +111,93 @@ const replaceTextByEl = el => {
 const bionic = _ => {
     const textEls = gather(body);
 
+    isBionic = true;
+
     textEls.forEach(replaceTextByEl);
     document.head.appendChild(styleEl);
 }
 
-const lazy = (func, ms = 0) => {
+const lazy = (func, ms = 15) => {
     return _ => {
-        clearTimeout(func.T);
-        func.T = setTimeout(func, ms);
+        clearTimeout(func.T)
+        func.T = setTimeout(func, ms)
     }
 };
-lazy(bionic)();
+
+bionic();
+
+const listenerFunc = lazy(_ => {
+    if (!isBionic) return;
+
+    bionic();
+});
 
 const { open, send } = XMLHttpRequest.prototype;
 XMLHttpRequest.prototype.open = function () {
-    this.addEventListener('load', lazy(bionic));
+    this.addEventListener('load', listenerFunc);
     return open.apply(this, arguments);
 };
 
-if (window.ResizeObserver) {
-    (new ResizeObserver(lazy(bionic, 100))).observe(body);
+if (window.MutationObserver) {
+    (new MutationObserver(listenerFunc)).observe(body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+    });
 } else {
-    
-    document.addEventListener('click', lazy(bionic));
 
-    window.addEventListener('load', lazy(bionic));
-    document.addEventListener("DOMContentLoaded", lazy(bionic));
+    window.addEventListener('load', listenerFunc);
+    document.addEventListener('DOMContentLoaded', listenerFunc);
+    document.addEventListener('DOMNodeInserted', listenerFunc);
 }
+
+
+// document.addEventListener('click',listenerFunc);
+
+
+const revoke = _ => {
+    const els = [...document.querySelectorAll('bionic')];
+
+    els.forEach(el => {
+        const { originEl } = el;
+        if (!originEl) return;
+
+        el.after(originEl);
+        el.remove();
+    })
+
+    isBionic = false;
+};
+// document.addEventListener('mousedown',revoke);
+
+const redo = _ => {
+    const textEls = gather(body);
+
+    textEls.forEach(el => {
+        const { replaceEl } = el;
+
+        if (!replaceEl) return;
+
+
+        el.after(replaceEl);
+        el.remove();
+    })
+
+    isBionic = false;
+};
+
+document.addEventListener('keydown', e => {
+    const { ctrlKey, metaKey, key } = e;
+
+    if (ctrlKey || metaKey) {
+        if (key === 'b') {
+            if (isBionic) {
+                revoke();
+            } else {
+                bionic();
+            }
+        }
+    }
+})
+
+// document.addEventListener('mouseup',redo);
