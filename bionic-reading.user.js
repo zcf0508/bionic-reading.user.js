@@ -17,7 +17,7 @@ const segmentit = Segmentit.useDefault(new Segmentit.Segment());
 const chinese_reg = /[\u4e00-\u9fa5]+/;
 
 // 分句
-const sentence_reg = /[。！？…]+[。！？…]/g;
+const sentence_reg = /[。！？]+[。！？]/g;
 
 let isBionic = false;
 
